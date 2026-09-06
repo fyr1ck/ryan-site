@@ -1,0 +1,220 @@
+@import 'tailwindcss';
+
+/* =============================================================================
+   Design tokens.
+   A loja é dark-first, como o segmento inteiro de produtos digitais de games.
+   A cor primária é sobrescrita em runtime pelo painel (settings.primary_color),
+   por isso ela vive numa CSS variable e nunca aparece hardcoded nos componentes.
+   ============================================================================= */
+@layer base {
+  :root {
+    --background: 240 6% 4%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 5% 7%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 6% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Violeta-azulado: identidade própria, distinta do site de referência */
+    --primary: 258 90% 62%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 4% 14%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 4% 12%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 240 4% 14%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+
+    --border: 0 0% 100% / 0.08;
+    --input: 0 0% 100% / 0.12;
+    --ring: 258 90% 62%;
+
+    --radius: 0.65rem;
+  }
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Respeita quem pediu menos movimento no sistema */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.3);
+  }
+}
+
+@layer components {
+  /* Largura de conteúdo consistente entre header, seções e footer */
+  .container-store {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: 1rem;
+    max-width: 80rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-store {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  /* Carrossel horizontal com scroll-snap: no mobile o dedo arrasta,
+     no desktop as setas controlam. Sem biblioteca, sem JS de layout. */
+  .snap-row {
+    display: grid;
+    grid-auto-flow: column;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding-bottom: 0.25rem;
+  }
+
+  .snap-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .snap-row > * {
+    scroll-snap-align: start;
+  }
+
+  .skeleton {
+    background-color: hsl(var(--muted));
+    border-radius: var(--radius-md);
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.45s ease-out both;
+}
+
+/* Conteúdo vindo do CMS (descrição de produto, páginas institucionais).
+   O HTML é sanitizado no servidor; aqui só damos tipografia. */
+.prose-store {
+  line-height: 1.7;
+  color: hsl(var(--muted-foreground));
+}
+.prose-store h2,
+.prose-store h3,
+.prose-store h4 {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+.prose-store h2 {
+  font-size: 1.25rem;
+}
+.prose-store h3 {
+  font-size: 1.1rem;
+}
+.prose-store p {
+  margin-bottom: 1em;
+}
+.prose-store strong {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+.prose-store ul,
+.prose-store ol {
+  margin: 1em 0;
+  padding-left: 1.5em;
+}
+.prose-store ul {
+  list-style: disc;
+}
+.prose-store ol {
+  list-style: decimal;
+}
+.prose-store li {
+  margin-bottom: 0.35em;
+}
+.prose-store a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-label="Pets">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a0f26"/>
+      <stop offset="0.55" stop-color="#140d20"/>
+      <stop offset="1" stop-color="#08080e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#f472b6" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#f472b6" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="paw" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#f9a8d4"/>
+      <stop offset="0.55" stop-color="#f472b6"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <rect width="800" height="450" fill="url(#grid)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+
+  <text x="40" y="52" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600"
+        letter-spacing="4.5" fill="#ffffff" fill-opacity="0.34">ROBLOX STORE</text>
+  <rect x="40" y="64" width="52" height="3" rx="1.5" fill="#7c4dff"/>
+
+  <g>
+    <ellipse cx="400" cy="318" rx="118" ry="18" fill="#000000" fill-opacity="0.45"/>
+    <path d="M400 306 C338 306 296 278 296 242 C296 204 338 182 400 182 C462 182 504 204 504 242 C504 278 462 306 400 306 Z"
+          fill="url(#paw)"/>
+    <ellipse cx="308" cy="146" rx="30" ry="40" fill="url(#paw)" transform="rotate(-22 308 146)"/>
+    <ellipse cx="368" cy="116" rx="29" ry="42" fill="url(#paw)" transform="rotate(-8 368 116)"/>
+    <ellipse cx="432" cy="116" rx="29" ry="42" fill="url(#paw)" transform="rotate(8 432 116)"/>
+    <ellipse cx="492" cy="146" rx="30" ry="40" fill="url(#paw)" transform="rotate(22 492 146)"/>
+    <path d="M344 222 Q372 202 408 208" fill="none" stroke="#ffffff" stroke-opacity="0.32"
+          stroke-width="9" stroke-linecap="round"/>
+    <circle cx="576" cy="140" r="8" fill="#f472b6" fill-opacity="0.55"/>
+    <circle cx="226" cy="190" r="6" fill="#f472b6" fill-opacity="0.45"/>
+  </g>
+
+  <text x="400" y="384" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="40"
+        font-weight="700" letter-spacing="0.5" fill="#f5f5f7">Pets</text>
+  <text x="400" y="414" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18"
+        font-weight="500" letter-spacing="1.2" fill="#a78bfa">Entrega imediata</text>
+</svg>

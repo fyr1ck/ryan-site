@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" role="img" aria-label="Avatar">
+  <defs>
+    <linearGradient id="avBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#241640"/>
+      <stop offset="1" stop-color="#0f0d18"/>
+    </linearGradient>
+    <linearGradient id="avFg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#c1abff"/>
+      <stop offset="1" stop-color="#7c4dff"/>
+    </linearGradient>
+    <clipPath id="avClip">
+      <circle cx="50" cy="50" r="50"/>
+    </clipPath>
+  </defs>
+
+  <circle cx="50" cy="50" r="50" fill="url(#avBg)"/>
+  <g clip-path="url(#avClip)">
+    <circle cx="50" cy="40" r="17" fill="url(#avFg)"/>
+    <path d="M18 102 C18 82 32 70 50 70 C68 70 82 82 82 102 Z" fill="url(#avFg)"/>
+  </g>
+  <circle cx="50" cy="50" r="49" fill="none" stroke="#7c4dff" stroke-opacity="0.35" stroke-width="2"/>
+</svg>

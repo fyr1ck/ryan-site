@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="400" viewBox="0 0 1600 400" role="img" aria-label="Entrega imediata">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#150c2e"/>
+      <stop offset="0.5" stop-color="#0e0b1c"/>
+      <stop offset="1" stop-color="#08080e"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0.78" cy="0.45" r="0.45">
+      <stop offset="0" stop-color="#7c4dff" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#7c4dff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0.06" cy="0.9" r="0.4">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0 H0 V48" fill="none" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="cubeTop" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c1abff"/>
+      <stop offset="1" stop-color="#8f66ff"/>
+    </linearGradient>
+    <linearGradient id="cubeRight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c4dff"/>
+      <stop offset="1" stop-color="#5426c4"/>
+    </linearGradient>
+    <linearGradient id="cubeLeft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5b34c9"/>
+      <stop offset="1" stop-color="#33188a"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#ffe08a"/>
+      <stop offset="0.5" stop-color="#f6c94a"/>
+      <stop offset="1" stop-color="#c48a12"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="400" fill="url(#bg)"/>
+  <rect width="1600" height="400" fill="url(#grid)"/>
+  <rect width="1600" height="400" fill="url(#glowA)"/>
+  <rect width="1600" height="400" fill="url(#glowB)"/>
+
+  <g>
+    <ellipse cx="1250" cy="200" rx="300" ry="190" fill="#7c4dff" fill-opacity="0.1"/>
+    <path d="M1230 64 L1340 122 L1230 180 L1120 122 Z" fill="url(#cubeTop)"/>
+    <path d="M1120 122 L1230 180 L1230 268 L1120 210 Z" fill="url(#cubeLeft)"/>
+    <path d="M1340 122 L1230 180 L1230 268 L1340 210 Z" fill="url(#cubeRight)"/>
+    <path d="M1230 64 L1340 122 L1230 180 L1120 122 Z" fill="none" stroke="#e0d5ff" stroke-opacity="0.5" stroke-width="2"/>
+    <circle cx="1408" cy="272" r="62" fill="#8a5f0c"/>
+    <circle cx="1408" cy="262" r="62" fill="url(#coin)"/>
+    <text x="1408" y="280" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="44"
+          font-weight="700" fill="#4a3103">R$</text>
+    <circle cx="1096" cy="292" r="40" fill="#5b34c9"/>
+    <circle cx="1096" cy="284" r="40" fill="#7c4dff"/>
+    <path d="M1096 264 L1103 279 L1119 281 L1107 292 L1110 308 L1096 300 L1082 308 L1085 292 L1073 281 L1089 279 Z" fill="#efe9ff"/>
+    <path d="M1490 96 L1498 122 L1524 130 L1498 138 L1490 164 L1482 138 L1456 130 L1482 122 Z" fill="#a78bfa" fill-opacity="0.9"/>
+    <path d="M1050 118 L1055 134 L1071 139 L1055 144 L1050 160 L1045 144 L1029 139 L1045 134 Z" fill="#7c4dff" fill-opacity="0.7"/>
+  </g>
+
+  <g>
+    <rect x="100" y="90" width="238" height="40" rx="20" fill="#7c4dff" fill-opacity="0.16" stroke="#7c4dff" stroke-opacity="0.5" stroke-width="1.5"/>
+    <circle cx="126" cy="110" r="5" fill="#4ade80"/>
+    <text x="142" y="116" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600"
+          letter-spacing="2.2" fill="#c1abff">PAGAMENTO VIA PIX</text>
+
+    <text x="100" y="212" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="76" font-weight="700"
+          letter-spacing="-1" fill="#f5f5f7">Entrega imediata</text>
+    <text x="100" y="256" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="500"
+          fill="#9aa0ac">Robux, contas, pets e sementes liberados na hora, no seu e-mail.</text>
+
+    <rect x="100" y="292" width="248" height="58" rx="29" fill="#7c4dff"/>
+    <text x="132" y="329" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="21" font-weight="700"
+          fill="#ffffff">Ver produtos</text>
+    <path d="M288 321 H310 M301 312 L310 321 L301 330" fill="none" stroke="#ffffff"
+          stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <text x="380" y="329" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="17" font-weight="500"
+          fill="#6f7583">Suporte 24h &#183; Garantia de reposi&#231;&#227;o</text>
+  </g>
+</svg>

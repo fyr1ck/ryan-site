@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" role="img" aria-label="Grow a Garden">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#102418"/>
+      <stop offset="1" stop-color="#0b0a12"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.45" r="0.55">
+      <stop offset="0" stop-color="#22c55e" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8f66ff"/>
+      <stop offset="1" stop-color="#4c22b0"/>
+    </linearGradient>
+    <linearGradient id="leafA" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#15803d"/>
+      <stop offset="1" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="leafB" x1="1" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#16a34a"/>
+      <stop offset="1" stop-color="#86efac"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="20" y="20" width="360" height="360" rx="76" fill="url(#tile)"/>
+  <rect x="20" y="20" width="360" height="360" rx="76" fill="url(#glow)"/>
+  <rect x="21.5" y="21.5" width="357" height="357" rx="74.5" fill="none" stroke="#7c4dff" stroke-opacity="0.35" stroke-width="3"/>
+
+  <g>
+    <path d="M200 246 C196 208 198 176 200 148" fill="none" stroke="#22c55e" stroke-width="14" stroke-linecap="round"/>
+    <path d="M198 214 C150 210 120 178 128 140 C172 134 196 172 198 214 Z" fill="url(#leafA)"/>
+    <path d="M202 190 C246 182 274 146 266 108 C224 106 200 150 202 190 Z" fill="url(#leafB)"/>
+    <rect x="132" y="242" width="136" height="30" rx="12" fill="#a78bfa"/>
+    <path d="M144 276 H256 L240 336 A12 12 0 0 1 228 346 H172 A12 12 0 0 1 160 336 Z" fill="url(#pot)"/>
+    <path d="M170 288 L180 336" stroke="#ffffff" stroke-opacity="0.22" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="300" cy="120" r="8" fill="#4ade80" fill-opacity="0.55"/>
+    <circle cx="106" cy="264" r="6" fill="#4ade80" fill-opacity="0.45"/>
+  </g>
+</svg>

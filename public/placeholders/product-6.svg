@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-label="Game Passes">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#181231"/>
+      <stop offset="0.55" stop-color="#0d0d1c"/>
+      <stop offset="1" stop-color="#08080e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.4" r="0.55">
+      <stop offset="0" stop-color="#7c4dff" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#7c4dff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="right" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8f66ff"/>
+      <stop offset="1" stop-color="#5426c4"/>
+    </linearGradient>
+    <linearGradient id="left" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6237d8"/>
+      <stop offset="1" stop-color="#33188a"/>
+    </linearGradient>
+    <linearGradient id="lid" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c1abff"/>
+      <stop offset="1" stop-color="#7c4dff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <rect width="800" height="450" fill="url(#grid)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+
+  <text x="40" y="52" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600"
+        letter-spacing="4.5" fill="#ffffff" fill-opacity="0.34">ROBLOX STORE</text>
+  <rect x="40" y="64" width="52" height="3" rx="1.5" fill="#7c4dff"/>
+
+  <g>
+    <ellipse cx="400" cy="326" rx="122" ry="20" fill="#000000" fill-opacity="0.45"/>
+    <path d="M300 176 L400 228 L400 320 L300 268 Z" fill="url(#left)"/>
+    <path d="M500 176 L400 228 L400 320 L500 268 Z" fill="url(#right)"/>
+    <path d="M400 124 L500 176 L400 228 L300 176 Z" fill="#0f0b1c"/>
+    <path d="M400 124 L500 176 L400 228 L300 176 Z" fill="none" stroke="url(#lid)" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M300 176 L300 268 M500 176 L500 268 M400 228 L400 320" stroke="#0a0a0f" stroke-opacity="0.35" stroke-width="2"/>
+    <path d="M330 214 L370 235" stroke="#ffffff" stroke-opacity="0.22" stroke-width="6" stroke-linecap="round"/>
+    <path d="M400 62 L412 100 L450 112 L412 124 L400 162 L388 124 L350 112 L388 100 Z" fill="#c1abff"/>
+    <path d="M494 96 L500 114 L518 120 L500 126 L494 144 L488 126 L470 120 L488 114 Z" fill="#7c4dff" fill-opacity="0.8"/>
+    <path d="M300 104 L305 118 L319 123 L305 128 L300 142 L295 128 L281 123 L295 118 Z" fill="#7c4dff" fill-opacity="0.6"/>
+  </g>
+
+  <text x="400" y="384" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="40"
+        font-weight="700" letter-spacing="0.5" fill="#f5f5f7">Game Passes</text>
+  <text x="400" y="414" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18"
+        font-weight="500" letter-spacing="1.2" fill="#a78bfa">Entrega imediata</text>
+</svg>

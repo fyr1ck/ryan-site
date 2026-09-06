@@ -68,6 +68,8 @@ export interface Product {
   status: ProductStatus
   category_id: string | null
   delivery_type: DeliveryType
+  /** Pede o nick do Roblox no checkout (gamepass, Robux, itens no inventário). */
+  requires_roblox_username: boolean
   stock_policy: StockPolicy
   stock_quantity: number
   stock_reserved: number
@@ -184,6 +186,8 @@ export interface Order {
   coupon_code: string | null
   customer_note: string | null
   admin_note: string | null
+  /** Nick que recebe a entrega no jogo. Null quando nenhum item do pedido exige. */
+  roblox_username: string | null
   paid_at: string | null
   completed_at: string | null
   cancelled_at: string | null

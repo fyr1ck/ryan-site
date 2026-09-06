@@ -77,6 +77,7 @@ export interface ProductFormInitial {
   status: ProductStatus
   category_id: string | null
   delivery_type: DeliveryType
+  requires_roblox_username: boolean
   stock_policy: StockPolicy
   stock_quantity: number
   tags: string[]
@@ -100,6 +101,7 @@ export const EMPTY_PRODUCT: ProductFormInitial = {
   status: 'draft',
   category_id: null,
   delivery_type: 'automatic',
+  requires_roblox_username: false,
   stock_policy: 'manual',
   stock_quantity: 0,
   tags: [],
@@ -156,6 +158,7 @@ export function ProductForm({ mode, initial, categories, collections }: ProductF
   const [tagDraft, setTagDraft] = React.useState('')
 
   const [deliveryType, setDeliveryType] = React.useState<DeliveryType>(initial.delivery_type)
+  const [requiresRoblox, setRequiresRoblox] = React.useState(initial.requires_roblox_username)
   const [stockPolicy, setStockPolicy] = React.useState<StockPolicy>(initial.stock_policy)
   const [stockQuantity, setStockQuantity] = React.useState(String(initial.stock_quantity))
 
@@ -242,6 +245,7 @@ export function ProductForm({ mode, initial, categories, collections }: ProductF
       status,
       category_id: categoryId === NO_CATEGORY ? null : categoryId,
       delivery_type: deliveryType,
+      requires_roblox_username: requiresRoblox,
       stock_policy: stockPolicy,
       stock_quantity: Number.parseInt(stockQuantity, 10) || 0,
       tags,
@@ -655,6 +659,25 @@ export function ProductForm({ mode, initial, categories, collections }: ProductF
                     {STOCK_OPTIONS.find((option) => option.value === stockPolicy)?.hint}
                   </p>
                 </div>
+              </div>
+
+              <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-card/40 p-3">
+                <div className="min-w-0 space-y-0.5">
+                  <Label htmlFor="requires_roblox_username" className="cursor-pointer">
+                    Pedir o usuário do Roblox
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ligue para gamepass, Robux e itens — o que é entregue dentro do jogo e depende
+                    do nick. Deixe desligado na venda de conta, em que o cliente recebe a
+                    credencial. Sem isso o pedido chega sem dizer para quem entregar.
+                  </p>
+                </div>
+                <Switch
+                  id="requires_roblox_username"
+                  checked={requiresRoblox}
+                  onCheckedChange={setRequiresRoblox}
+                  className="shrink-0"
+                />
               </div>
 
               {stockPolicy === 'manual' && (

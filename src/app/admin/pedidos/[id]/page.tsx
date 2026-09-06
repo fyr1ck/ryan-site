@@ -62,6 +62,7 @@ interface OrderRow {
   coupon_code: string | null
   customer_note: string | null
   admin_note: string | null
+  roblox_username: string | null
   ip_address: string | null
   user_agent: string | null
   paid_at: string | null
@@ -142,7 +143,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const { data: orderRaw } = await supabase
     .from('orders')
     .select(
-      'id, order_number, user_id, customer_email, customer_name, customer_phone, status, payment_status, subtotal_cents, discount_cents, total_cents, coupon_code, customer_note, admin_note, ip_address, user_agent, paid_at, completed_at, cancelled_at, created_at, updated_at'
+      'id, order_number, user_id, customer_email, customer_name, customer_phone, status, payment_status, subtotal_cents, discount_cents, total_cents, coupon_code, customer_note, admin_note, roblox_username, ip_address, user_agent, paid_at, completed_at, cancelled_at, created_at, updated_at'
     )
     .eq('id', id)
     .maybeSingle()
@@ -382,6 +383,19 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
               <p className="break-all text-muted-foreground">{order.customer_email}</p>
               {order.customer_phone && (
                 <p className="text-muted-foreground">{order.customer_phone}</p>
+              )}
+
+              {/* Monoespaçado de propósito: é o dado que o admin copia para
+                  entregar, e nele l/I/1 e O/0 se confundem em fonte comum. */}
+              {order.roblox_username && (
+                <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Entregar no Roblox
+                  </p>
+                  <p className="break-all font-mono text-sm font-semibold text-foreground">
+                    {order.roblox_username}
+                  </p>
+                </div>
               )}
 
               {order.user_id ? (

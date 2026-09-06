@@ -46,7 +46,7 @@ praticamente tudo pelo painel, sem abrir o editor de código.
 
 ```
 roblox-store/
-├─ supabase/migrations/       13 migrations SQL, aplicadas em ordem
+├─ supabase/migrations/       16 migrations SQL, aplicadas em ordem
 ├─ scripts/                   utilitários (dump de migrations)
 ├─ public/placeholders/       imagens provisórias (troque pelo painel)
 └─ src/
@@ -192,6 +192,12 @@ produto, o pedido antigo continua contando a história correta.
 **Slug e código curto.** O produto tem `slug` (bom para SEO) e `short_code`
 (estável). Se você renomear o produto, o slug muda e o código continua valendo.
 
+**Nick do Roblox por produto, não global.** `products.requires_roblox_username`
+liga o campo no checkout; `orders.roblox_username` guarda a resposta. A conta
+que exige é o produto, porque gamepass e Robux precisam saber para quem entregar
+e venda de conta não. Quem valida é `create_order` — o formulário só esconde o
+campo, e um POST montado à mão passaria por ele.
+
 ### Anti-overselling
 
 `create_order()` é uma função transacional. Ela:
@@ -211,7 +217,7 @@ esgotado, webhook duplicado, cancelamento e acesso de terceiro à entrega.
 
 ### Migrations
 
-As 13 migrations em `supabase/migrations/` reproduzem o banco do zero, em ordem.
+As 16 migrations em `supabase/migrations/` reproduzem o banco do zero, em ordem.
 
 Para aplicar em um projeto novo, use o SQL Editor do Supabase (cole uma por vez,
 em ordem) ou o CLI:
@@ -304,12 +310,13 @@ de nomes.
 
 ## Administradores
 
-Dois administradores já vêm configurados:
+Os administradores que já vêm configurados:
 
-| E-mail | Papel |
-|---|---|
-| `pedro07shopify@gmail.com` | `super_admin` |
-| `armabritanica@gmail.com` | `admin` |
+| E-mail | Papel | Migration |
+|---|---|---|
+| `pedro07shopify@gmail.com` | `super_admin` | 0009 |
+| `armabritanica@gmail.com` | `admin` | 0009 |
+| `joao.jhcc31@gmail.com` | `super_admin` | 0015 |
 
 **Como funciona:** os e-mails estão em `admin_allowlist`. Quando essa pessoa faz
 login pela primeira vez, um trigger no banco (`handle_new_user`) concede o papel
@@ -346,6 +353,13 @@ select id, 'admin' from public.profiles where email = 'ja-existe@exemplo.com';
 gerado sozinho). Escolha a categoria, adicione imagens, defina a política de
 estoque e mude o status para *Ativo*. Se for entrega automática por código,
 cadastre as chaves em **Estoque**.
+
+**Pedir o usuário do Roblox** — em *Entrega e estoque*, o switch **Pedir o
+usuário do Roblox**. Ligue para o que é entregue dentro do jogo (gamepass,
+Robux, itens, pets); deixe desligado na venda de conta, em que o cliente recebe
+a credencial e o nick não serve para nada. Basta um item do carrinho exigir para
+o campo aparecer no checkout, e o nick chega junto do pedido — em **Pedidos**,
+no bloco *Entregar no Roblox* do cartão do cliente.
 
 **Criar coleção** — Coleções → Nova coleção. Depois de salvar, adicione produtos
 e arraste para ordenar. Marque *Mostrar na home* para ela virar um carrossel.

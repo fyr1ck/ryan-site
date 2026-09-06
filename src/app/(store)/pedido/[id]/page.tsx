@@ -9,6 +9,7 @@ import {
   Package,
   PackageOpen,
   SearchX,
+  UserRound,
 } from 'lucide-react'
 
 import { Breadcrumbs } from '@/components/store/breadcrumbs'
@@ -273,6 +274,20 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
               </p>
               <p className="break-words font-medium text-foreground">{order.customer_email}</p>
             </div>
+
+            {/* O cliente confere o nick aqui, enquanto ainda dá tempo de avisar:
+                depois de entregue não há como desfazer numa conta errada. */}
+            {order.roblox_username && (
+              <div className="space-y-1 text-sm">
+                <p className="flex items-center gap-1.5 text-muted-foreground">
+                  <UserRound className="size-3.5" aria-hidden />
+                  Entrega no Roblox
+                </p>
+                <p className="break-all font-mono font-medium text-foreground">
+                  {order.roblox_username}
+                </p>
+              </div>
+            )}
 
             {access === 'email' && (
               <p className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">

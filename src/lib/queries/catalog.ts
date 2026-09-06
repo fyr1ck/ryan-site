@@ -11,7 +11,8 @@ import type {
 /** Colunas que a vitrine precisa. Evita trazer custo, SKU e afins ao público. */
 const PRODUCT_CARD_FIELDS = `
   id, short_code, name, slug, short_description, price_cents, compare_at_cents,
-  status, category_id, delivery_type, stock_policy, stock_quantity, stock_reserved,
+  status, category_id, delivery_type, requires_roblox_username,
+  stock_policy, stock_quantity, stock_reserved,
   tags, is_featured, position, sales_count, rating_average, rating_count,
   created_at, updated_at, description, cost_cents, sku, seo_title, seo_description,
   product_images (id, product_id, url, alt, position, created_at)

@@ -80,6 +80,7 @@ const productFieldsSchema = z.object({
   category_id: nullableUuid('Categoria inválida.'),
 
   delivery_type: z.enum(['automatic', 'manual'], 'Tipo de entrega inválido.'),
+  requires_roblox_username: z.boolean().optional().default(false),
   stock_policy: z.enum(['unlimited', 'manual', 'digital_keys'], 'Política de estoque inválida.'),
 
   stock_quantity: z
@@ -231,6 +232,7 @@ function productColumns(data: ProductFields, slug: string) {
     status: data.status,
     category_id: data.category_id ?? null,
     delivery_type: data.delivery_type,
+    requires_roblox_username: data.requires_roblox_username,
     stock_policy: data.stock_policy,
     // Só a política "manual" usa este número. Em 'unlimited' ele é ignorado e
     // em 'digital_keys' o estoque é a contagem de chaves disponíveis — deixar
@@ -496,6 +498,7 @@ export async function duplicateProduct(input: unknown): Promise<ActionResultWith
         status: 'draft',
         category_id: original.category_id,
         delivery_type: original.delivery_type,
+        requires_roblox_username: original.requires_roblox_username,
         stock_policy: original.stock_policy,
         stock_quantity: original.stock_policy === 'manual' ? original.stock_quantity : 0,
         tags: original.tags,

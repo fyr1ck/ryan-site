@@ -16,12 +16,18 @@ import {
   ShoppingCart,
   Tag,
   Ticket,
+  UserRound,
   X,
   Zap,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { createOrderAction, validateCouponAction } from '@/actions/checkout'
+import {
+  checkoutRequirementsAction,
+  createOrderAction,
+  validateCouponAction,
+  type CheckoutRequirementsResult,
+} from '@/actions/checkout'
 import { useCart } from '@/components/cart/cart-provider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,6 +37,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
+import { ROBLOX_USERNAME_ERROR, ROBLOX_USERNAME_HINT, isValidRobloxUsername } from '@/lib/roblox'
 import { cn, formatPrice } from '@/lib/utils'
 
 /**
@@ -78,6 +85,7 @@ export function CheckoutForm({
   const [email, setEmail] = React.useState(defaultEmail ?? '')
   const [name, setName] = React.useState(defaultName ?? '')
   const [phone, setPhone] = React.useState('')
+  const [robloxUsername, setRobloxUsername] = React.useState('')
 
   const [couponInput, setCouponInput] = React.useState('')
   const [coupon, setCoupon] = React.useState<{ code: string; discountCents: number } | null>(null)
@@ -129,10 +137,73 @@ export function CheckoutForm({
   const discountCents = Math.min(coupon?.discountCents ?? 0, subtotalCents)
   const totalCents = Math.max(0, subtotalCents - discountCents)
 
+  // ---------------------------------------------------------------------------
+  // Entrega no jogo: o carrinho exige o nick do Roblox?
+  //
+  // Quem responde é o servidor, não o item salvo no localStorage — um carrinho
+  // montado antes de o admin ligar a exigência traria a resposta errada, o campo
+  // não apareceria e o pedido seria recusado sem o cliente ter como corrigir.
+  // ---------------------------------------------------------------------------
+  const [requirements, setRequirements] = React.useState<CheckoutRequirementsResult>({
+    requiresRobloxUsername: false,
+    robloxProductNames: [],
+  })
+
+  /**
+   * Só o conjunto de produtos importa: sem esta chave o efeito refaria a
+   * consulta a cada mudança de quantidade (e a cada render que recria `items`).
+   */
+  const productIdsKey = React.useMemo(
+    () =>
+      items
+        .map((item) => item.product_id)
+        .sort()
+        .join(','),
+    [items]
+  )
+
+  React.useEffect(() => {
+    if (!isHydrated) return
+
+    const ids = productIdsKey === '' ? [] : productIdsKey.split(',')
+    let cancelled = false
+
+    void checkoutRequirementsAction({ product_ids: ids }).then((result) => {
+      if (!cancelled) setRequirements(result)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isHydrated, productIdsKey])
+
+  /**
+   * Rede de segurança: se a consulta acima falhar, o campo fica escondido e o
+   * servidor recusa o pedido. Revelar o campo ao ver essa recusa transforma um
+   * beco sem saída em "preencha e tente de novo".
+   */
+  const [robloxRejected, setRobloxRejected] = React.useState(false)
+  const showRoblox = requirements.requiresRobloxUsername || robloxRejected
+
+  /** Dizer QUAIS itens pedem o nick evita a impressão de dado pedido à toa. */
+  const robloxProductsLabel = React.useMemo(() => {
+    const names = requirements.robloxProductNames
+    if (names.length === 0) return null
+    if (names.length === 1) return names[0]
+    if (names.length === 2) return `${names[0]} e ${names[1]}`
+    return `${names[0]} e mais ${names.length - 1} itens`
+  }, [requirements.robloxProductNames])
+
   const isEmpty = isHydrated && items.length === 0
   const busy = pending || redirecting
   const canSubmit =
-    !busy && !isEmpty && isHydrated && acceptTerms && email.trim() !== '' && availableMethods.length > 0
+    !busy &&
+    !isEmpty &&
+    isHydrated &&
+    acceptTerms &&
+    email.trim() !== '' &&
+    (!showRoblox || robloxUsername.trim() !== '') &&
+    availableMethods.length > 0
 
   // ---------------------------------------------------------------------------
   // Cupom
@@ -197,6 +268,14 @@ export function CheckoutForm({
       setError('Você precisa aceitar os termos e condições desta compra.')
       return
     }
+    if (showRoblox && !isValidRobloxUsername(robloxUsername)) {
+      setError(
+        robloxUsername.trim() === ''
+          ? 'Informe o seu usuário do Roblox para recebermos a entrega na conta certa.'
+          : ROBLOX_USERNAME_ERROR
+      )
+      return
+    }
 
     startTransition(async () => {
       const result = await createOrderAction({
@@ -205,6 +284,7 @@ export function CheckoutForm({
         customer_name: name,
         customer_phone: phone,
         coupon_code: coupon?.code,
+        roblox_username: robloxUsername,
         accept_terms: acceptTerms,
       })
 
@@ -221,6 +301,10 @@ export function CheckoutForm({
         goToOrder(result.orderId)
         return
       }
+
+      // A recusa por falta do nick só acontece se a consulta de requisitos tiver
+      // falhado. Revelar o campo agora deixa o cliente concluir a compra.
+      if (/roblox/i.test(result.error)) setRobloxRejected(true)
 
       setError(result.error)
       toast.error(result.error)
@@ -499,6 +583,58 @@ export function CheckoutForm({
               )}
             </CardContent>
           </Card>
+
+          {/* --------------------------------------------- Entrega no Roblox */}
+          {showRoblox && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <UserRound className="size-4 text-primary" aria-hidden />
+                  Entrega no Roblox
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {robloxProductsLabel
+                    ? `Entregamos ${robloxProductsLabel} direto na sua conta do jogo.`
+                    : 'Este pedido é entregue direto na sua conta do jogo.'}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="checkout-roblox">
+                    Seu usuário do Roblox <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="checkout-roblox"
+                    name="roblox_username"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    required
+                    disabled={busy}
+                    placeholder="Ex.: Builderman"
+                    value={robloxUsername}
+                    // Nick do Roblox não tem espaço: tirar já na digitação evita
+                    // que um espaço colado junto derrube a validação depois.
+                    onChange={(event) => setRobloxUsername(event.target.value.replace(/\s/g, ''))}
+                    aria-describedby="checkout-roblox-ajuda"
+                  />
+                  <p id="checkout-roblox-ajuda" className="text-xs text-muted-foreground">
+                    {ROBLOX_USERNAME_HINT}
+                  </p>
+                </div>
+
+                <p className="flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 p-3 text-xs text-muted-foreground">
+                  <AlertCircle className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
+                  <span>
+                    Confira letra por letra: é o nome de{' '}
+                    <strong className="text-foreground">usuário</strong>, não o apelido exibido no
+                    perfil. Entrega feita na conta errada não tem como voltar.
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* -------------------------------------------------------- Cupom */}
           <Card>

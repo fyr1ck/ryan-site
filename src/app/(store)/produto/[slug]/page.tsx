@@ -145,6 +145,16 @@ export default async function ProdutoPage({
                 </Badge>
               </div>
 
+              {/* Avisa ANTES do carrinho: quem não lembra do próprio nick
+                  descobre no checkout, com a compra já começada. */}
+              {product.requires_roblox_username && (
+                <p className="text-xs text-muted-foreground sm:text-sm">
+                  Entregue na sua conta do jogo — pedimos o seu{' '}
+                  <strong className="font-medium text-foreground">usuário do Roblox</strong> na
+                  finalização.
+                </p>
+              )}
+
               {product.short_description && (
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {product.short_description}

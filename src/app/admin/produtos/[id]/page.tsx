@@ -98,6 +98,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     status: product.status,
     category_id: product.category_id,
     delivery_type: product.delivery_type,
+    requires_roblox_username: product.requires_roblox_username,
     stock_policy: product.stock_policy,
     stock_quantity: product.stock_quantity,
     tags: product.tags ?? [],

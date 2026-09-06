@@ -5,21 +5,23 @@ import { z } from 'zod'
 
 import { getSessionUser } from '@/lib/auth'
 import { createPixCharge, translateStripeError, type PixCharge } from '@/lib/payments/stripe'
+import { ROBLOX_USERNAME_ERROR, ROBLOX_USERNAME_PATTERN } from '@/lib/roblox'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 // =============================================================================
 // CONTRATO DAS RPCs (definidas em supabase/migrations/)
 // -----------------------------------------------------------------------------
 // create_order(
-//   p_items          jsonb,   -- [{ "product_id": uuid, "quantity": int }]
-//   p_customer_email text,
-//   p_customer_name  text,
-//   p_customer_phone text,
-//   p_coupon_code    text,
-//   p_customer_note  text,
-//   p_user_id        uuid,    -- null = convidado
-//   p_ip             text,    -- convertido para inet dentro da função
-//   p_user_agent     text
+//   p_items           jsonb,   -- [{ "product_id": uuid, "quantity": int }]
+//   p_customer_email  text,
+//   p_customer_name   text,
+//   p_customer_phone  text,
+//   p_coupon_code     text,
+//   p_customer_note   text,
+//   p_user_id         uuid,    -- null = convidado
+//   p_ip              text,    -- convertido para inet dentro da função
+//   p_user_agent      text,
+//   p_roblox_username text     -- exigido quando algum item pede (0016)
 // ) returns table (order_id uuid, order_number int, total_cents int)
 //
 // A RPC é a ÚNICA fonte de verdade de preço: ela relê products.price_cents,
@@ -168,7 +170,23 @@ const createOrderSchema = z.object({
     z.string().max(500, 'A observação pode ter no máximo 500 caracteres.').optional()
   ),
 
+  /**
+   * Opcional aqui de propósito: quem decide se é obrigatório são os produtos do
+   * carrinho, e essa conta é feita no banco (create_order). Exigir sempre
+   * travaria a venda de conta, que não precisa de nick.
+   */
+  roblox_username: z.preprocess(
+    emptyToUndefined,
+    z.string().regex(ROBLOX_USERNAME_PATTERN, ROBLOX_USERNAME_ERROR).optional()
+  ),
+
   accept_terms: z.literal(true, 'Você precisa aceitar os termos de compra para continuar.'),
+})
+
+const checkoutRequirementsSchema = z.object({
+  product_ids: z
+    .array(z.uuid('Há um produto inválido no carrinho.'))
+    .max(50, 'São no máximo 50 itens diferentes por pedido.'),
 })
 
 const validateCouponSchema = z.object({
@@ -195,6 +213,7 @@ const validateCouponSchema = z.object({
 
 export type CreateOrderInput = z.input<typeof createOrderSchema>
 export type ValidateCouponInput = z.input<typeof validateCouponSchema>
+export type CheckoutRequirementsInput = z.input<typeof checkoutRequirementsSchema>
 
 export type CreateOrderResult =
   | { ok: true; orderId: string; orderNumber: number }
@@ -206,6 +225,13 @@ export interface ValidateCouponResult {
   valid: boolean
   reason: string | null
   discount_cents: number
+}
+
+export interface CheckoutRequirementsResult {
+  /** Algum produto do carrinho entrega dentro do jogo e precisa do nick. */
+  requiresRobloxUsername: boolean
+  /** Nomes dos produtos que exigem — a tela diz POR QUE está pedindo o dado. */
+  robloxProductNames: string[]
 }
 
 // -----------------------------------------------------------------------------
@@ -365,6 +391,7 @@ export async function createOrderAction(input: unknown): Promise<CreateOrderResu
       p_user_id: user?.id ?? null,
       p_ip: ip,
       p_user_agent: userAgent,
+      p_roblox_username: data.roblox_username ?? null,
     })
 
     // (d) Erro de negócio da RPC: a mensagem já vem pronta em português.
@@ -503,5 +530,54 @@ export async function validateCouponAction(input: unknown): Promise<ValidateCoup
     console.error('[validateCouponAction]', error)
     const message = 'Não foi possível validar o cupom agora.'
     return { ok: false, error: message, valid: false, reason: message, discount_cents: 0 }
+  }
+}
+
+/**
+ * O checkout pergunta ao servidor se o carrinho exige o nick do Roblox.
+ *
+ * Por que não guardar a flag no item do carrinho: o carrinho vive no
+ * localStorage e pode ter semanas. Um carrinho montado antes de o admin ligar a
+ * exigência no produto não teria a flag, o campo não apareceria e create_order
+ * recusaria o pedido — becos sem saída para quem só queria comprar.
+ * Perguntar na hora custa uma ida ao servidor e nunca fica desatualizado.
+ *
+ * Isto é só para a TELA. A exigência de verdade é aplicada em create_order.
+ */
+export async function checkoutRequirementsAction(
+  input: unknown
+): Promise<CheckoutRequirementsResult> {
+  const vazio: CheckoutRequirementsResult = {
+    requiresRobloxUsername: false,
+    robloxProductNames: [],
+  }
+
+  const parsed = checkoutRequirementsSchema.safeParse(input)
+  if (!parsed.success || parsed.data.product_ids.length === 0) return vazio
+
+  try {
+    const admin = createAdminClient()
+    const { data, error } = await admin
+      .from('products')
+      .select('name')
+      .in('id', parsed.data.product_ids)
+      .eq('status', 'active')
+      .eq('requires_roblox_username', true)
+
+    if (error) {
+      // Falhar aqui não pode travar o checkout: o campo fica escondido e, se
+      // algum item exigir mesmo, create_order recusa com mensagem clara.
+      console.error('[checkoutRequirementsAction]', error)
+      return vazio
+    }
+
+    const names = (data ?? [])
+      .map((row) => row.name)
+      .filter((name): name is string => typeof name === 'string')
+
+    return { requiresRobloxUsername: names.length > 0, robloxProductNames: names }
+  } catch (error) {
+    console.error('[checkoutRequirementsAction]', error)
+    return vazio
   }
 }

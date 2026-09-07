@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
+import { CPF_ERROR, formatCpf, isValidCpf, stripCpf } from '@/lib/cpf'
 import { ROBLOX_USERNAME_ERROR, ROBLOX_USERNAME_HINT, isValidRobloxUsername } from '@/lib/roblox'
 import { cn, formatPrice } from '@/lib/utils'
 
@@ -85,6 +86,8 @@ export function CheckoutForm({
   const [email, setEmail] = React.useState(defaultEmail ?? '')
   const [name, setName] = React.useState(defaultName ?? '')
   const [phone, setPhone] = React.useState('')
+  /** Guardado com máscara para exibição; só os dígitos vão para o servidor. */
+  const [document, setDocument] = React.useState('')
   const [robloxUsername, setRobloxUsername] = React.useState('')
 
   const [couponInput, setCouponInput] = React.useState('')
@@ -202,6 +205,10 @@ export function CheckoutForm({
     isHydrated &&
     acceptTerms &&
     email.trim() !== '' &&
+    // Nome e CPF viraram obrigatórios com a troca de gateway: a criação da
+    // cobrança Pix exige payerName e payerDocument.
+    name.trim() !== '' &&
+    stripCpf(document).length === 11 &&
     (!showRoblox || robloxUsername.trim() !== '') &&
     availableMethods.length > 0
 
@@ -268,6 +275,10 @@ export function CheckoutForm({
       setError('Você precisa aceitar os termos e condições desta compra.')
       return
     }
+    if (!isValidCpf(document)) {
+      setError(CPF_ERROR)
+      return
+    }
     if (showRoblox && !isValidRobloxUsername(robloxUsername)) {
       setError(
         robloxUsername.trim() === ''
@@ -283,6 +294,7 @@ export function CheckoutForm({
         customer_email: email,
         customer_name: name,
         customer_phone: phone,
+        customer_document: document,
         coupon_code: coupon?.code,
         roblox_username: robloxUsername,
         accept_terms: acceptTerms,
@@ -539,34 +551,61 @@ export function CheckoutForm({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="checkout-nome">Nome</Label>
+                  <Label htmlFor="checkout-nome">
+                    Nome completo <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="checkout-nome"
                     name="nome"
                     autoComplete="name"
+                    required
                     disabled={busy}
-                    placeholder="Como podemos te chamar"
+                    placeholder="Como está no seu documento"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="checkout-telefone">
-                    Telefone <span className="text-muted-foreground">(opcional)</span>
+                  <Label htmlFor="checkout-cpf">
+                    CPF <span className="text-destructive">*</span>
                   </Label>
                   <Input
-                    id="checkout-telefone"
-                    name="telefone"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
+                    id="checkout-cpf"
+                    name="cpf"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    required
                     disabled={busy}
-                    placeholder="(11) 90000-0000"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder="000.000.000-00"
+                    value={document}
+                    // Máscara na digitação: o banco exige o formato do Pix e
+                    // ver os pontos ajuda a conferir número longo.
+                    onChange={(event) => setDocument(formatCpf(event.target.value))}
+                    aria-describedby="checkout-cpf-ajuda"
                   />
+                  <p id="checkout-cpf-ajuda" className="text-xs text-muted-foreground">
+                    Exigido pelo banco para emitir o Pix.
+                  </p>
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="checkout-telefone">
+                  Telefone <span className="text-muted-foreground">(opcional)</span>
+                </Label>
+                <Input
+                  id="checkout-telefone"
+                  name="telefone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  disabled={busy}
+                  placeholder="(11) 90000-0000"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  className="sm:max-w-[calc(50%-0.5rem)]"
+                />
               </div>
 
               {!isLoggedIn && (

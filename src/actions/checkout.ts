@@ -4,7 +4,8 @@ import { headers } from 'next/headers'
 import { z } from 'zod'
 
 import { getSessionUser } from '@/lib/auth'
-import { createPixCharge, translateStripeError, type PixCharge } from '@/lib/payments/stripe'
+import { CPF_ERROR, isValidCpf, stripCpf } from '@/lib/cpf'
+import { createPixCharge, translateGatewayError, type PixCharge } from '@/lib/payments/misticpay'
 import { ROBLOX_USERNAME_ERROR, ROBLOX_USERNAME_PATTERN } from '@/lib/roblox'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -21,7 +22,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 //   p_user_id         uuid,    -- null = convidado
 //   p_ip              text,    -- convertido para inet dentro da função
 //   p_user_agent      text,
-//   p_roblox_username text     -- exigido quando algum item pede (0016)
+//   p_roblox_username text,    -- exigido quando algum item pede (0016)
+//   p_customer_document text   -- CPF, exigido pelo gateway de Pix (0017)
 // ) returns table (order_id uuid, order_number int, total_cents int)
 //
 // A RPC é a ÚNICA fonte de verdade de preço: ela relê products.price_cents,
@@ -143,13 +145,27 @@ const createOrderSchema = z.object({
     z.email('Informe um e-mail válido para receber o pedido.').max(160, 'E-mail longo demais.')
   ),
 
+  /**
+   * Obrigatório desde a troca para a MisticPay: a criação da cobrança Pix
+   * exige `payerName`. Antes era opcional, quando a Stripe se virava só com
+   * o e-mail.
+   */
   customer_name: z.preprocess(
     emptyToUndefined,
     z
-      .string()
+      .string('Informe o seu nome completo.')
       .min(2, 'O nome precisa ter pelo menos 2 caracteres.')
       .max(120, 'O nome pode ter no máximo 120 caracteres.')
-      .optional()
+  ),
+
+  /**
+   * CPF do pagador — exigido pela API do gateway (`payerDocument`).
+   * Valida o dígito verificador, não só o tamanho: erro de digitação aqui só
+   * apareceria com o pedido criado e o estoque já reservado.
+   */
+  customer_document: z.preprocess(
+    (value) => (typeof value === 'string' ? stripCpf(value) : value),
+    z.string('Informe o seu CPF.').refine(isValidCpf, CPF_ERROR)
   ),
 
   customer_phone: z.preprocess(
@@ -384,8 +400,9 @@ export async function createOrderAction(input: unknown): Promise<CreateOrderResu
     const { data: result, error } = await admin.rpc('create_order', {
       p_items: data.items,
       p_customer_email: data.customer_email,
-      p_customer_name: data.customer_name ?? null,
+      p_customer_name: data.customer_name,
       p_customer_phone: data.customer_phone ?? null,
+      p_customer_document: data.customer_document,
       p_coupon_code: data.coupon_code ?? null,
       p_customer_note: data.customer_note ?? null,
       p_user_id: user?.id ?? null,
@@ -425,7 +442,7 @@ export async function createOrderAction(input: unknown): Promise<CreateOrderResu
     }
   }
 
-  // (e) Cobrança Pix na Stripe.
+  // (e) Cobrança Pix no gateway.
   //
   // O valor vem de order.total_cents, que a RPC recalculou do banco — nada do
   // que o cliente mandou sobre dinheiro chega até aqui.
@@ -435,8 +452,8 @@ export async function createOrderAction(input: unknown): Promise<CreateOrderResu
       orderId: order.order_id,
       orderNumber: order.order_number,
       amountCents: order.total_cents,
-      customerEmail: data.customer_email,
-      customerName: data.customer_name ?? null,
+      customerName: data.customer_name,
+      customerDocument: data.customer_document,
     })
   } catch (error) {
     // A cobrança falhou, mas o pedido já existe e o estoque está RESERVADO.
@@ -451,13 +468,13 @@ export async function createOrderAction(input: unknown): Promise<CreateOrderResu
       console.error('[createOrderAction:cancelamento-falhou]', order.order_id, cancelError)
     }
 
-    return { ok: false, error: translateStripeError(error) }
+    return { ok: false, error: translateGatewayError(error) }
   }
 
-  // (f) Guarda o QR e o id da Stripe. O webhook encontra o pedido por este id.
+  // (f) Guarda o QR e o id do gateway. O webhook encontra o pedido por este id.
   const { error: paymentError } = await admin.from('payments').insert({
     order_id: order.order_id,
-    provider: 'stripe',
+    provider: 'misticpay',
     provider_payment_id: charge.paymentIntentId,
     method: 'pix',
     status: 'pending',
@@ -468,11 +485,40 @@ export async function createOrderAction(input: unknown): Promise<CreateOrderResu
   })
 
   if (paymentError) {
-    // Aqui a cobrança JÁ EXISTE na Stripe e o cliente pode pagar a qualquer
+    // Aqui a cobrança JÁ EXISTE no gateway e o cliente pode pagar a qualquer
     // momento. Cancelar o pedido agora criaria o pior caso: dinheiro entrando
-    // sem pedido correspondente. Melhor deixar de pé e mandar o cliente para a
-    // página do pedido, onde o webhook ainda vai encontrá-lo pelo metadata.
-    console.error('[createOrderAction:payment-insert]', paymentError, charge.paymentIntentId)
+    // sem pedido correspondente.
+    //
+    // MUDOU COM A TROCA DE GATEWAY: a Stripe carregava order_id no metadata do
+    // PaymentIntent, então o webhook reencontrava o pedido mesmo sem esta
+    // linha. A MisticPay não devolve a nossa referência no webhook — só o id
+    // dela. Esta linha é o ÚNICO vínculo entre transação e pedido, e sem ela o
+    // webhook responde "transacao desconhecida" e o cliente paga sem receber.
+    //
+    // Por isso: uma segunda tentativa antes de desistir (a falha típica é
+    // instabilidade momentânea), e log com os dois ids para reconciliar à mão.
+    const { error: retryError } = await admin.from('payments').insert({
+      order_id: order.order_id,
+      provider: 'misticpay',
+      provider_payment_id: charge.paymentIntentId,
+      method: 'pix',
+      status: 'pending',
+      amount_cents: order.total_cents,
+      qr_code: charge.qrCodeImageUrl,
+      qr_code_text: charge.qrCodeText,
+      expires_at: charge.expiresAt,
+    })
+
+    if (!retryError) {
+      return { ok: true, orderId: order.order_id, orderNumber: order.order_number }
+    }
+
+    console.error(
+      '[createOrderAction:payment-insert] VINCULO PERDIDO — reconciliar a mao',
+      { orderId: order.order_id, orderNumber: order.order_number, transactionId: charge.paymentIntentId },
+      paymentError,
+      retryError
+    )
     return {
       ok: false,
       error: `Seu pedido #${order.order_number} foi criado. Abra a página do pedido para concluir o pagamento.`,

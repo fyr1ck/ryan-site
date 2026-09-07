@@ -4,13 +4,13 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { getSessionUser } from '@/lib/auth'
-import { createPixCharge, translateStripeError } from '@/lib/payments/stripe'
+import { createPixCharge, translateGatewayError } from '@/lib/payments/misticpay'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
  * Gera um código Pix novo para um pedido que ainda não foi pago.
  *
- * O código da Stripe expira em 30 minutos. Sem isto, um cliente que demorou
+ * O código do gateway expira em 30 minutos. Sem isto, um cliente que demorou
  * para pagar ficaria com um pedido de pé e um QR morto, sem saída na tela — e o
  * estoque continuaria reservado até alguém cancelar à mão.
  */
@@ -48,7 +48,9 @@ export async function regeneratePixChargeAction(input: unknown): Promise<Regener
 
   const { data: order, error: orderError } = await admin
     .from('orders')
-    .select('id, order_number, user_id, customer_email, total_cents, status, payment_status')
+    .select(
+      'id, order_number, user_id, customer_email, customer_name, customer_document, total_cents, status, payment_status'
+    )
     .eq('id', order_id)
     .maybeSingle()
 
@@ -84,19 +86,31 @@ export async function regeneratePixChargeAction(input: unknown): Promise<Regener
     }
   }
 
+  // O gateway exige nome e CPF para criar a cobrança. Pedidos criados antes da
+  // migration 0017 não têm CPF gravado — não há como gerar código novo para
+  // eles sem pedir o dado de novo, então a mensagem manda falar com o suporte
+  // em vez de estourar um erro cru do gateway na tela.
+  if (!order.customer_document || !order.customer_name) {
+    return {
+      ok: false,
+      error: 'Não foi possível gerar um novo código para este pedido. Fale com o suporte da loja.',
+    }
+  }
+
   let charge
   try {
     charge = await createPixCharge({
       orderId: order.id,
       orderNumber: order.order_number,
       amountCents: order.total_cents,
-      customerEmail: order.customer_email,
-      // A chave de idempotência precisa MUDAR a cada tentativa. Repetir a do
-      // pedido devolveria o mesmo PaymentIntent — justamente o que expirou.
+      customerName: order.customer_name,
+      customerDocument: order.customer_document,
+      // A referência precisa MUDAR a cada tentativa: repetir a do pedido faria
+      // o gateway tratar como a mesma cobrança — justamente a que expirou.
       idempotencySuffix: String(tentativas + 1),
     })
   } catch (error) {
-    return { ok: false, error: translateStripeError(error) }
+    return { ok: false, error: translateGatewayError(error) }
   }
 
   // As cobranças antigas viram 'expired': o histórico do pedido continua
@@ -109,7 +123,7 @@ export async function regeneratePixChargeAction(input: unknown): Promise<Regener
 
   const { error: insertError } = await admin.from('payments').insert({
     order_id: order.id,
-    provider: 'stripe',
+    provider: 'misticpay',
     provider_payment_id: charge.paymentIntentId,
     method: 'pix',
     status: 'pending',

@@ -19,7 +19,7 @@ praticamente tudo pelo painel, sem abrir o editor de código.
 9. [Como usar o painel](#como-usar-o-painel)
 10. [Deploy na Vercel](#deploy-na-vercel)
 11. [Checklist de produção](#checklist-de-produção)
-12. [Pagamento (Stripe / Pix)](#pagamento-stripe--pix)
+12. [Pagamento (MisticPay / Pix)](#pagamento-misticpay--pix)
 13. [Diagnóstico de implantação](#diagnóstico-de-implantação)
 14. [Melhorias futuras](#melhorias-futuras)
 
@@ -46,7 +46,7 @@ praticamente tudo pelo painel, sem abrir o editor de código.
 
 ```
 roblox-store/
-├─ supabase/migrations/       16 migrations SQL, aplicadas em ordem
+├─ supabase/migrations/       17 migrations SQL, aplicadas em ordem
 ├─ scripts/                   utilitários (dump de migrations)
 ├─ public/placeholders/       imagens provisórias (troque pelo painel)
 └─ src/
@@ -105,7 +105,6 @@ A loja sobe em `http://localhost:3000` e o painel em `http://localhost:3000/admi
 | `npm run lint` | ESLint |
 | `npm run test:security` | **Smoke test de RLS** — conecta como visitante anônimo e tenta alcançar o que não deveria |
 | `npm run test:sanitize` | **Teste de XSS** — 26 cenários provando que a sanitização barra script, onerror, javascript: e afins |
-| `npm run test:webhook` | **Teste do webhook da Stripe** — assina eventos com o SDK e prova que o endpoint aceita os válidos e recusa forjados, adulterados e replays |
 | `npm run verify` | typecheck + lint + build, em sequência |
 | `npm run db:dump` | Materializa as migrations aplicadas a partir do banco |
 
@@ -138,8 +137,8 @@ O `.env.local` **nunca** vai para o Git (já está no `.gitignore`).
 | Variável | O que é |
 |---|---|
 | `SUPABASE_SERVICE_ROLE_KEY` | **Ignora o RLS por completo.** Só é usada em `lib/supabase/admin.ts`, que tem `import 'server-only'` — se alguém tentar importar no cliente, o build quebra |
-| `STRIPE_SECRET_KEY` | Chave secreta da Stripe (`sk_live_...`) |
-| `STRIPE_WEBHOOK_SECRET` | Segredo de assinatura do webhook (`whsec_...`). Sem ele, qualquer POST na rota poderia marcar pedidos como pagos |
+| `MISTICPAY_PUBLIC_KEY` / `MISTICPAY_SECRET_KEY` | Access Keys do gateway de Pix. As legadas `ci_`/`cs_` morrem em 30/09/2026 |
+| `MISTICPAY_WEBHOOK_TOKEN` | Segredo **seu**, no caminho da URL do webhook. Defesa em profundidade: a MisticPay não assina o webhook, então quem confirma o pagamento é uma consulta de volta à API dela |
 
 **Onde pegar a service_role:** Supabase Dashboard → Project Settings → API →
 `service_role`. Essa chave dá acesso total ao banco: trate como senha.
@@ -217,7 +216,7 @@ esgotado, webhook duplicado, cancelamento e acesso de terceiro à entrega.
 
 ### Migrations
 
-As 16 migrations em `supabase/migrations/` reproduzem o banco do zero, em ordem.
+As 17 migrations em `supabase/migrations/` reproduzem o banco do zero, em ordem.
 
 Para aplicar em um projeto novo, use o SQL Editor do Supabase (cole uma por vez,
 em ordem) ou o CLI:
@@ -418,90 +417,97 @@ o OAuth de cada um com a callback do Supabase.
 - [ ] Logo, favicon e cor da marca trocados em Configurações
 - [ ] Páginas de Termos e Privacidade revisadas (o texto atual é genérico)
 - [ ] Redes sociais preenchidas em Configurações
-- [ ] `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` preenchidas
-- [ ] Pix habilitado no Dashboard da Stripe
-- [ ] Webhook cadastrado apontando para o domínio de produção
+- [ ] `MISTICPAY_PUBLIC_KEY`, `MISTICPAY_SECRET_KEY` e `MISTICPAY_WEBHOOK_TOKEN` preenchidas
+- [ ] `NEXT_PUBLIC_SITE_URL` com domínio público (o webhook não funciona em localhost)
 - [ ] Um pedido de teste pago de ponta a ponta em modo test
 - [ ] `npm run build` passando sem erro
 - [ ] Rate limit migrado para Redis se houver mais de uma instância
 
 ---
 
-## Pagamento (Stripe / Pix)
+## Pagamento (MisticPay / Pix)
 
-O gateway é a **Stripe**, com **Pix via PaymentIntent** — o QR aparece na
-própria página do pedido, sem redirecionar para fora da loja.
+O gateway é a **MisticPay**, com Pix via API — o QR aparece na própria página do
+pedido, sem redirecionar para fora da loja.
 
-### Por que PaymentIntent e não Stripe Checkout
+### Por que não Stripe
 
-Checkout (a página hospedada da Stripe) daria cartão de graça e menos código.
-Perderia, em troca, o comprador no meio do fluxo: ele sai da loja, abre o app do
-banco e volta para um domínio que não é o seu. Como a Stripe entrega o QR cru em
-`next_action.pix_display_qr_code`, dá para mostrá-lo na loja com o mesmo esforço.
+A integração original era Stripe. Ela foi removida porque **Pix na Stripe para
+empresas brasileiras é invite-only e exige 60 dias processando pagamentos na
+plataforma**. Como esta loja só vende por Pix, o requisito é impossível de
+cumprir: precisaria processar para liberar o Pix, e só processa com Pix. A conta
+de teste devolvia `payment_method_type "pix" is invalid` em toda tentativa.
 
-A contrapartida assumida: **cartão não está implementado**. Para adicionar,
-o caminho é o Payment Element sobre o mesmo PaymentIntent — a tabela `payments`
-e o webhook já servem os dois.
+A contrapartida assumida: **cartão não está implementado**. A MisticPay hoje
+processa só Pix.
 
 ### O que você precisa fazer
 
-1. **Conta Stripe brasileira.** Pix só existe para entidades no Brasil.
-2. **Habilitar o Pix**: Dashboard → Settings → Payment methods → Pix.
-3. **Chaves** em `.env.local` (Dashboard → Developers → API keys):
+1. **Access Keys** no painel da MisticPay, em `.env.local`:
    ```
-   STRIPE_SECRET_KEY=sk_live_...
-   STRIPE_WEBHOOK_SECRET=whsec_...
+   MISTICPAY_PUBLIC_KEY=pk_...
+   MISTICPAY_SECRET_KEY=sk_...
    ```
-4. **Webhook**: Dashboard → Developers → Webhooks → Add endpoint
-   - URL: `https://SEU-DOMINIO/api/webhooks/stripe`
-   - Eventos: `payment_intent.succeeded`, `payment_intent.payment_failed`,
-     `payment_intent.canceled`
-   - Copie o *Signing secret* para `STRIPE_WEBHOOK_SECRET`
+   Não use as credenciais legadas `ci_`/`cs_`: são descontinuadas em 30/09/2026
+   e não permitem saque.
 
-Para testar localmente sem expor o servidor:
+2. **Token do webhook** — é segredo *seu*, não da MisticPay:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+   Coloque em `MISTICPAY_WEBHOOK_TOKEN`. A URL do webhook é montada sozinha a
+   partir dele e de `NEXT_PUBLIC_SITE_URL`, e enviada em cada cobrança:
+   `https://SEU-DOMINIO/api/webhooks/misticpay/<token>`
 
-```bash
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
-```
+**O webhook não funciona em localhost.** O gateway precisa alcançar a URL de
+fora, então `createPixCharge` omite o webhook quando o site aponta para
+localhost — o QR é gerado, mas nenhum pedido é confirmado sozinho. Para testar
+ponta a ponta em desenvolvimento, exponha a porta com um túnel (ngrok,
+cloudflared) e aponte `NEXT_PUBLIC_SITE_URL` para a URL pública.
 
-O comando imprime um `whsec_...` temporário — use esse no `.env.local` enquanto
-testa. Para simular um pagamento aprovado:
+### O webhook não é assinado — e o que foi feito quanto a isso
 
-```bash
-stripe trigger payment_intent.succeeded
-```
+Esta é a diferença mais importante em relação à integração anterior. A Stripe
+assinava o corpo com HMAC, e verificar essa assinatura era a peça de segurança
+central. **A MisticPay não assina nada.** Tratado ingenuamente, isso significa
+que quem descobrir a URL manda `{"transactionId": 1, "status": "COMPLETO"}` e
+leva o produto de graça.
 
-Sem conta e sem internet, dá para exercitar o endpoint assim:
+Duas defesas, nesta ordem:
 
-```bash
-npm run test:webhook
-```
+1. **Token na URL** — defesa em profundidade. Sozinho não bastaria (vaza em log
+   de proxy, em histórico, em print), mas mata o POST de quem só adivinhou o
+   domínio antes de custar uma chamada à API. Comparado em tempo constante, e
+   responde 404 quando erra: para quem sonda, a rota não existe.
 
-Esse script assina eventos com o próprio SDK da Stripe e cobre 7 cenários —
-sem assinatura, forjada, corpo adulterado depois de assinado, replay de evento
-antigo, assinado com o segredo errado, assinatura válida e evento não tratado.
-Ele exige que `STRIPE_WEBHOOK_SECRET` no `.env.local` seja o mesmo que o
-servidor carregou (reinicie o dev server depois de mudar o `.env`).
+2. **Confirmação na fonte** — a que realmente vale. O corpo do webhook serve
+   *apenas* para descobrir qual transação olhar. Quem diz se ela foi paga é
+   `checkTransaction()`, que pergunta à API da MisticPay autenticado com a nossa
+   chave secreta. Um POST forjado dispara a consulta, a API responde `PENDENTE`,
+   e nada é entregue — o caso ainda é registrado no log como tentativa de fraude.
 
-**Por que o caso da assinatura válida importa tanto:** um webhook quebrado que
-recusa *tudo* passa num teste que só verifica rejeição. Foi exatamente isso que
-aconteceu aqui — `verifyWebhookSignature` dependia da `STRIPE_SECRET_KEY` sem
-precisar dela, e recusava eventos legítimos quando a chave faltava. Verificar
-assinatura é só um HMAC com o webhook secret; hoje usa `Stripe.webhooks`
-estático, desacoplado da chave da API.
+Para forjar um pagamento seria preciso comprometer a própria MisticPay, e nesse
+ponto o webhook já não é o elo fraco.
+
+### A armadilha da unidade
+
+A API **recebe o valor em reais** (`4.55` = R$ 4,55) e **devolve em centavos**
+(`455`). A loja inteira trabalha em centavos; a conversão acontece num único
+lugar (`centsToReais`, em `lib/payments/misticpay.ts`), na borda da requisição.
+Misturar os dois cobra 100x a mais ou a menos.
 
 ### Como o dinheiro vira entrega
 
 1. O cliente envia o checkout. `create_order` recalcula o preço **do banco**,
    aplica o cupom e reserva o estoque, tudo numa transação.
-2. `createPixCharge()` cria o PaymentIntent com o valor que a RPC devolveu —
-   nada do que o cliente digitou sobre dinheiro chega à Stripe.
-3. O QR e o código copia-e-cola são gravados em `payments` e mostrados na
-   página do pedido, que se atualiza sozinha enquanto o pagamento não cai.
-4. O cliente paga. A Stripe chama o webhook.
-5. O webhook **valida a assinatura**, confere o valor recebido contra o pedido,
-   e chama `mark_order_paid` — que baixa o estoque, entrega o conteúdo digital
-   e conclui o pedido.
+2. `createPixCharge()` cria a cobrança com o valor que a RPC devolveu — nada do
+   que o cliente digitou sobre dinheiro chega ao gateway.
+3. O QR (data URI base64) e o copia-e-cola são gravados em `payments` e
+   mostrados na página do pedido, que se atualiza sozinha.
+4. O cliente paga. A MisticPay chama o webhook.
+5. O webhook **confirma o pagamento consultando a API**, confere o valor contra
+   o pedido, e chama `mark_order_paid` — que baixa o estoque, entrega o conteúdo
+   digital e conclui o pedido.
 
 ### Decisões de segurança que valem conhecer
 
@@ -509,23 +515,25 @@ estático, desacoplado da chave da API.
 Fechar o navegador no meio do Pix não impede a entrega, e um POST forjado não a
 provoca.
 
-**Assinatura verificada antes de qualquer coisa.** O corpo é lido cru
-(`request.text()`) porque o hash é calculado sobre os bytes exatos — qualquer
-parse antes invalidaria a verificação.
-
-**Valor conferido no webhook.** Se o valor recebido for menor que o do pedido,
+**Valor conferido no webhook.** Se o valor confirmado for menor que o do pedido,
 a entrega não acontece e o caso é registrado.
 
-**Idempotência em duas camadas.** A criação da cobrança usa
-`idempotencyKey: pedido-<uuid>`, então duplo clique não gera duas cobranças; e
-`mark_order_paid` é idempotente, então webhook reenviado não entrega duas vezes.
+**`payments.provider_payment_id` é o único vínculo transação → pedido.** A
+Stripe carregava `order_id` no metadata e o webhook reencontrava o pedido mesmo
+sem essa linha; a MisticPay só devolve o id dela. Por isso o insert em
+`payments` tem uma segunda tentativa, e o fracasso das duas registra os dois ids
+no log para reconciliação manual.
 
-**Falha na cobrança cancela o pedido.** Se a Stripe recusar depois do estoque
-já reservado, o pedido é cancelado na hora e as chaves voltam ao pool — senão
-ficariam presas até alguém perceber.
+**Falha na cobrança cancela o pedido.** Se o gateway recusar depois do estoque
+já reservado, o pedido é cancelado na hora e as chaves voltam ao pool.
 
 **O webhook fica fora do proxy de sessão** (`api/webhooks` está excluído do
-matcher): ele autentica por assinatura, não por cookie.
+matcher): ele tem autenticação própria, não depende de cookie.
+
+**CPF é revogado por coluna.** `orders.customer_document` existe só para ser
+enviado ao gateway; `revoke select` tira a coluna de `anon` e `authenticated`.
+Cuidado: um `select('*')` em `orders` com o client de sessão passa a **falhar**,
+não a devolver null.
 
 **Pix é assíncrono.** O pedido nasce `pending` e só muda quando o webhook chega.
 Por isso o webhook não é opcional: sem ele configurado, nenhum pedido é entregue.

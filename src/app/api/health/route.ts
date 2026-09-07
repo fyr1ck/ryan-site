@@ -9,7 +9,7 @@ import { PUBLIC_ENV_VARS, missingPublicEnv } from '@/lib/env'
  * quando se precisa dele.
  *
  * Reporta apenas a PRESENÇA de cada variável, nunca o valor. Saber que
- * STRIPE_SECRET_KEY existe não ajuda ninguém a usá-la; saber que ela falta
+ * MISTICPAY_SECRET_KEY existe não ajuda ninguém a usá-la; saber que ela falta
  * economiza uma hora de investigação.
  */
 export const runtime = 'nodejs'
@@ -27,8 +27,9 @@ export async function GET() {
   for (const nome of PUBLIC_ENV_VARS) env[nome] = presenca(nome)
   env.NEXT_PUBLIC_SITE_URL = presenca('NEXT_PUBLIC_SITE_URL')
   env.SUPABASE_SERVICE_ROLE_KEY = presenca('SUPABASE_SERVICE_ROLE_KEY')
-  env.STRIPE_SECRET_KEY = presenca('STRIPE_SECRET_KEY')
-  env.STRIPE_WEBHOOK_SECRET = presenca('STRIPE_WEBHOOK_SECRET')
+  env.MISTICPAY_PUBLIC_KEY = presenca('MISTICPAY_PUBLIC_KEY')
+  env.MISTICPAY_SECRET_KEY = presenca('MISTICPAY_SECRET_KEY')
+  env.MISTICPAY_WEBHOOK_TOKEN = presenca('MISTICPAY_WEBHOOK_TOKEN')
 
   // Testa a conexão real com o banco pela chave pública. Só a contagem sai
   // daqui — nenhum dado de loja, nenhum dado de cliente.
@@ -65,7 +66,7 @@ export async function GET() {
   // e apenas os que casam com os prefixos do projeto, para não listar o
   // ambiente inteiro da plataforma.
   const detectadas = Object.keys(process.env)
-    .filter((k) => /SUPABASE|STRIPE|NEXT_PUBLIC/i.test(k))
+    .filter((k) => /SUPABASE|MISTICPAY|NEXT_PUBLIC/i.test(k))
     .map((k) => (k === k.trim() ? k : `${k}  <-- TEM ESPACO NO NOME`))
     .sort()
 

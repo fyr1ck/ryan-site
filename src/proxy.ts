@@ -8,11 +8,13 @@ const CSP_DIRECTIVES = [
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
     : "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  // O QR do Pix é uma imagem hospedada pela Stripe (next_action.image_url_png).
-  // Sem este host no img-src, o CSP bloqueia e o cliente não consegue pagar.
-  "img-src 'self' data: blob: https://*.supabase.co https://*.stripe.com",
+  // O QR do Pix da MisticPay vem como data URI base64 (qrCodeBase64), coberto
+  // pelo `data:` abaixo — não há host de gateway a liberar. A Stripe hospedava
+  // a imagem e exigia o domínio dela aqui; isso saiu junto com a integração.
+  "img-src 'self' data: blob: https://*.supabase.co",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com",
+  // A API do gateway é chamada do SERVIDOR, nunca do browser: nada a liberar.
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -46,9 +48,10 @@ export const config = {
     /*
      * Tudo, menos estáticos, imagens e webhooks.
      *
-     * Os webhooks ficam de fora de propósito: eles não têm sessão para renovar,
-     * autenticam por assinatura, e a Stripe espera resposta rápida — passar
-     * pelo getUser() do Supabase só somaria latência a cada evento.
+     * Os webhooks ficam de fora de propósito: eles não têm sessão para renovar
+     * e o gateway espera resposta rápida — passar pelo getUser() do Supabase só
+     * somaria latência a cada evento. A autenticação deles é própria (token na
+     * URL + confirmação na API do gateway), não depende de cookie.
      */
     '/((?!_next/static|_next/image|favicon.ico|placeholders|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico)$).*)',
   ],
